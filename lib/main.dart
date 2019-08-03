@@ -6,8 +6,13 @@ import 'package:flutter/services.dart';
 const _pieceSize = 8.0;
 const _numPieces = 100;
 const _duration = Duration(milliseconds: 1000);
-final _colorTween = ColorTween(begin: Colors.green, end: Colors.transparent);
-final _random = Random();
+const x = 255;
+final rnd = Random();
+Color getRandomColor() => Color.fromARGB(
+    rnd.nextInt(x), rnd.nextInt(x), rnd.nextInt(x), rnd.nextInt(x));
+
+//Color getRandomOpaqueColor() =>
+//    Color.fromARGB(x - 1, rnd.nextInt(x), rnd.nextInt(x), rnd.nextInt(x));
 
 void main() => runApp(MyApp());
 
@@ -15,19 +20,12 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
+      home: MyHomePage(),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
-
-  final String title;
   @override
   _MyHomePageState createState() => _MyHomePageState();
 }
@@ -35,9 +33,7 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage>
     with SingleTickerProviderStateMixin {
   double _width, _height;
-
   AnimationController _controller;
-  Animation _animation;
 
   @override
   void initState() {
@@ -47,7 +43,6 @@ class _MyHomePageState extends State<MyHomePage>
       vsync: this, // the SingleTickerProviderStateMixin
       duration: _duration,
     );
-    _animation = _colorTween.animate(_controller);
     _controller.forward();
     _controller.addStatusListener((AnimationStatus status) {
       if (status == AnimationStatus.completed) {
@@ -64,26 +59,22 @@ class _MyHomePageState extends State<MyHomePage>
     super.dispose();
   }
 
-  Widget _createAnimatedGlitterPiece(BuildContext context) {
-    final piece = AnimatedBuilder(
-        animation: _animation,
-        builder: (BuildContext ctx, Widget w) => Container(
-            width: _pieceSize, height: _pieceSize, color: _animation.value));
+  Widget _createAnimatedGlitterPiece(BuildContext context,
+      {bool reversed = false, bool animated = true}) {
+    final colorTween = ColorTween(
+        begin: reversed ? Colors.transparent : getRandomColor(),
+        end: reversed ? getRandomColor() : Colors.transparent);
+    Animation animation = colorTween.animate(_controller);
+    final piece = animated
+        ? AnimatedBuilder(
+            animation: animation,
+            builder: (BuildContext ctx, Widget w) => Container(
+                width: _pieceSize, height: _pieceSize, color: animation.value))
+        : Container(
+            width: _pieceSize, height: _pieceSize, color: getRandomColor());
 
-    final leftOffset = _random.nextDouble() * (_width - _pieceSize);
-    final topOffset = _random.nextDouble() * (_height - _pieceSize);
-    return Positioned(
-      top: topOffset,
-      left: leftOffset,
-      child: piece,
-    );
-  }
-
-  Widget _createStaticGlitterPiece() {
-    final piece =
-        Container(width: _pieceSize, height: _pieceSize, color: Colors.blue);
-    final leftOffset = _random.nextDouble() * (_width - _pieceSize);
-    final topOffset = _random.nextDouble() * (_height - _pieceSize);
+    final leftOffset = rnd.nextDouble() * (_width - _pieceSize);
+    final topOffset = rnd.nextDouble() * (_height - _pieceSize);
     return Positioned(
       top: topOffset,
       left: leftOffset,
@@ -94,10 +85,19 @@ class _MyHomePageState extends State<MyHomePage>
   List<Widget> _createGlitterPieces(BuildContext context, int numPieces) {
     final result = <Widget>[];
     for (var i = 0; i < numPieces; i++) {
-      result.add(_createStaticGlitterPiece());
+      result.add(_createAnimatedGlitterPiece(context, animated: false));
       result.add(_createAnimatedGlitterPiece(context));
+      result.add(_createAnimatedGlitterPiece(context, reversed: true));
     }
     return result;
+  }
+
+  _onTap() {
+    setState(() {
+    });
+  }
+  _onLongPress() {
+
   }
 
   @override
@@ -105,10 +105,13 @@ class _MyHomePageState extends State<MyHomePage>
     _width = MediaQuery.of(context).size.width;
     _height = MediaQuery.of(context).size.height;
     return Scaffold(
-        body: Center(
-            child: Container(
-                color: Colors.pink[100],
-                child: Stack(
-                    children: _createGlitterPieces(context, _numPieces)))));
+        body: GestureDetector(
+          onTap: _onTap,
+          onLongPress: _onLongPress,
+          child: Container(
+              color: Colors.black,
+              child: Stack(
+                  children: _createGlitterPieces(context, _numPieces))),
+        ));
   }
 }
